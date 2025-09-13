@@ -14,9 +14,16 @@ let obstacleSpeed = 200;
 let stars = [];
 
 function preload() {}
-function create() {}
-function update() {}
 
-
-function preload() {
+function create() {
+    for (let i = 0; i < 100; i++) {
+        let star = this.add.rectangle(
+            Phaser.Math.Between(0, 400),
+            Phaser.Math.Between(0, 600),
+            2, 2, 0xffffff
+        );
+        stars.push(star);
+    }
 }
+
+function update() {}
