@@ -30,6 +30,9 @@ function create() {
     player = this.add.rectangle(200, 550, 40, 40, 0x00ff00);
     this.physics.add.existing(player);
     player.body.setCollideWorldBounds(true);
+
+    // Add obstacles group
+    obstacles = this.physics.add.group();
 }
 
 function update() {}
