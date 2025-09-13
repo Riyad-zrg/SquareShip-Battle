@@ -12,7 +12,6 @@ let player;
 let obstacles = [];
 let bullets = [];
 let defenders = [];
-let bossBullets = [];
 let cursors;
 let keys;
 let score = 0;
@@ -23,6 +22,8 @@ let mode = 'normal';
 let boss;
 let bossHealth = 20;
 let bossBar;
+let bossActive = false;
+let bossTimer = 0;
 
 function preload() {}
 
@@ -79,6 +80,7 @@ function create() {
     });
 
     bossBar = this.add.graphics();
+    bossTimer = this.time.now; // premier boss apparaîtra après 10 secondes
 }
 
 function update() {
@@ -90,7 +92,9 @@ function update() {
     score += 0.01;
     scoreText.setText(`Score: ${Math.floor(score)}\nBest: ${bestScore}`);
 
-    if (mode === 'normal' && Math.floor(score) >= 15) startBossFight(this);
+    if (!bossActive && mode === 'normal' && this.time.now - bossTimer >= 10000) {
+        startBossFight(this);
+    }
 
     handleObstacles(this);
     handleBullets(this);
@@ -110,7 +114,6 @@ function spawnObstacle(scene) {
 function handleObstacles(scene) {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         let o = obstacles[i];
-
         if (o.y > 600) { o.destroy(); obstacles.splice(i, 1); continue; }
 
         for (let j = defenders.length - 1; j >= 0; j--) {
@@ -135,8 +138,7 @@ function handleBullets(scene) {
 
         if (mode === 'boss' && boss && scene.physics.overlap(b, boss)) {
             bossHealth--;
-            b.destroy();
-            bullets.splice(i, 1);
+            b.destroy(); bullets.splice(i, 1);
             if (bossHealth <= 0) endBossFight(scene);
             continue;
         }
@@ -161,20 +163,18 @@ function shootBullet(scene) {
 
 function startBossFight(scene) {
     mode = 'boss';
+    bossActive = true;
     bossHealth = 20;
     boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
 }
 
 function endBossFight(scene) {
     mode = 'normal';
+    bossActive = false;
+    bossTimer = scene.time.now;
     if (boss) { boss.destroy(); boss = null; }
-    bossBullets.forEach(b => b.destroy());
-    bossBullets = [];
     bossBar.clear();
-
-    obstacles.forEach(o => {
-        o.body.setVelocityY(400);
-    });
+    obstacles.forEach(o => o.body.setVelocityY(400));
 }
 
 function handleStars() {
@@ -192,6 +192,7 @@ function drawBossBar() {
 }
 
 function gameOver(scene) {
+    endBossFight();
     scene.physics.pause();
     player.setTint(0xff0000);
     if (score > bestScore) { bestScore = Math.floor(score); localStorage.setItem('bestScore', bestScore); }
@@ -209,5 +210,7 @@ function gameOver(scene) {
         scene.physics.resume();
         mode = 'normal';
         bossBar.clear();
+        bossActive = false;
+        bossTimer = scene.time.now;
     }, 2000);
 }
