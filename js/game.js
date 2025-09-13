@@ -54,8 +54,8 @@ function create() {
         callback: () => {
             let x = Phaser.Math.Between(20, 380);
             let obstacle = this.physics.add.sprite(x, -50, 'obstacleTex');
-            obstacle.body.setAllowGravity(true);
-            obstacle.body.setGravityY(500);
+            obstacle.body.setAllowGravity(false);
+            obstacle.body.setVelocityY(400); //Speed of obstacles
             obstacles.push(obstacle);
         },
         loop: true
