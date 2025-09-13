@@ -162,11 +162,30 @@ function shootBullet(scene) {
 }
 
 function startBossFight(scene) {
-    mode = 'boss';
+    mode = 'alert';
     bossActive = true;
-    bossHealth = 20;
-    boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
+
+    let alertRect = scene.add.rectangle(200, 300, 400, 600, 0xff0000, 0.3);
+    let alertText = scene.add.text(200, 300, 'BOSS INCOMING', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
+
+    scene.tweens.add({
+        targets: alertRect,
+        alpha: 0.6,
+        yoyo: true,
+        repeat: 5,
+        duration: 200,
+    });
+
+    scene.time.delayedCall(1200, () => {
+        alertRect.destroy();
+        alertText.destroy();
+
+        mode = 'boss';
+        bossHealth = 20;
+        boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
+    });
 }
+
 
 function endBossFight(scene) {
     mode = 'normal';
