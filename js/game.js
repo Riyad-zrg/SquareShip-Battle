@@ -16,3 +16,7 @@ let stars = [];
 function preload() {}
 function create() {}
 function update() {}
+
+
+function preload() {
+}
