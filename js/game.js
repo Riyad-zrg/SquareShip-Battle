@@ -8,6 +8,11 @@ const config = {
 
 const game = new Phaser.Game(config);
 
+let player, obstacles, cursors;
+let score = 0, bestScore = 0, scoreText;
+let obstacleSpeed = 200;
+let stars = [];
+
 function preload() {}
 function create() {}
 function update() {}
