@@ -162,29 +162,41 @@ function shootBullet(scene) {
 }
 
 function startBossFight(scene) {
-    mode = 'alert';
+    if (mode !== 'normal') return;
+    mode = 'waiting';
     bossActive = true;
-
-    let alertRect = scene.add.rectangle(200, 300, 400, 600, 0xff0000, 0.3);
-    let alertText = scene.add.text(200, 300, 'BOSS INCOMING', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
-
-    scene.tweens.add({
-        targets: alertRect,
-        alpha: 0.6,
-        yoyo: true,
-        repeat: 5,
-        duration: 200,
-    });
-
-    scene.time.delayedCall(1200, () => {
-        alertRect.destroy();
-        alertText.destroy();
-
-        mode = 'boss';
-        bossHealth = 20;
-        boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
+    let waitForBullets = scene.time.addEvent({
+        delay: 100,
+        loop: true,
+        callback: () => {
+            if (bullets.length === 0) {
+                waitForBullets.remove();
+                scene.time.delayedCall(500, () => {
+                    mode = 'alert';
+                    let alertRect = scene.add.rectangle(200, 300, 400, 600, 0xff0000, 0.15);
+                    let alertText = scene.add.text(200, 300, 'BOSS INCOMING', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
+                    scene.tweens.add({
+                        targets: alertRect,
+                        alpha: 0.25,
+                        yoyo: true,
+                        repeat: 1,
+                        duration: 800,
+                    });
+                    scene.time.delayedCall(1600, () => {
+                        alertRect.destroy();
+                        alertText.destroy();
+                        mode = 'boss';
+                        bossHealth = 20;
+                        boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
+                    });
+                });
+            }
+        }
     });
 }
+
+
+
 
 
 function endBossFight(scene) {
