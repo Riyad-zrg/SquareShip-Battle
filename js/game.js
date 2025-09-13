@@ -33,6 +33,9 @@ function create() {
 
     // Add obstacles group
     obstacles = this.physics.add.group();
+
+    // Setup cursor keys
+    cursors = this.input.keyboard.createCursorKeys();
 }
 
 function update() {}
