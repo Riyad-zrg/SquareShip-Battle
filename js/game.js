@@ -147,10 +147,21 @@ function handleObstacles(scene) {
             }
         }
 
-        if (o.y > 580 && defenders.length === 0) gameOver(scene);
+        if (defenders.length > 0) {
+            let lowestDefenderY = Math.max(...defenders.map(d => d.y));
+            if (o.y >= lowestDefenderY) {
+                gameOver(scene);
+            }
+        } else {
+            if (o.y >= player.y) {
+                gameOver(scene);
+            }
+        }
+
         if (scene.physics.overlap(player, o)) gameOver(scene);
     }
 }
+
 
 function handleBullets(scene) {
     for (let i = bullets.length - 1; i >= 0; i--) {
