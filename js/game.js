@@ -12,12 +12,17 @@ let player;
 let obstacles = [];
 let bullets = [];
 let defenders = [];
+let bossBullets = [];
 let cursors;
 let keys;
 let score = 0;
 let bestScore = 0;
 let scoreText;
 let stars = [];
+let mode = 'normal';
+let boss;
+let bossHealth = 20;
+let bossBar;
 
 function preload() {}
 
@@ -63,23 +68,17 @@ function create() {
     keys = this.input.keyboard.addKeys({ left: 'Q', right: 'D' });
 
     this.input.keyboard.on('keydown-SPACE', () => shootBullet(this));
-    this.input.on('pointerdown', pointer => {
-        if (pointer.leftButtonDown()) shootBullet(this);
-    });
+    this.input.on('pointerdown', pointer => { if (pointer.leftButtonDown()) shootBullet(this); });
 
     scoreText = this.add.text(10, 10, `Score: 0\nBest: ${bestScore}`, { fontSize: '20px', fill: '#fff' });
 
     this.time.addEvent({
         delay: 1000,
-        callback: () => {
-            let x = Phaser.Math.Between(20, 380);
-            let obstacle = this.physics.add.sprite(x, -50, 'obstacleTex');
-            obstacle.body.setAllowGravity(false);
-            obstacle.body.setVelocityY(400);
-            obstacles.push(obstacle);
-        },
+        callback: () => { if (mode === 'normal') spawnObstacle(this); },
         loop: true
     });
+
+    bossBar = this.add.graphics();
 }
 
 function update() {
@@ -91,57 +90,67 @@ function update() {
     score += 0.01;
     scoreText.setText(`Score: ${Math.floor(score)}\nBest: ${bestScore}`);
 
+    if (mode === 'normal' && Math.floor(score) >= 15) startBossFight(this);
+
+    handleObstacles(this);
+    handleBullets(this);
+    handleStars();
+
+    if (mode === 'boss') drawBossBar();
+}
+
+function spawnObstacle(scene) {
+    let x = Phaser.Math.Between(20, 380);
+    let obstacle = scene.physics.add.sprite(x, -50, 'obstacleTex');
+    obstacle.body.setAllowGravity(false);
+    obstacle.body.setVelocityY(400);
+    obstacles.push(obstacle);
+}
+
+function handleObstacles(scene) {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         let o = obstacles[i];
-        if (o.y > 600) {
-            o.destroy();
-            obstacles.splice(i, 1);
-        } else {
-            for (let j = defenders.length - 1; j >= 0; j--) {
-                let d = defenders[j];
-                if (this.physics.overlap(o, d)) {
-                    d.destroy();
-                    defenders.splice(j, 1);
-                    o.destroy();
-                    obstacles.splice(i, 1);
-                    break;
-                }
-            }
-            if (o.y > 580 && defenders.length === 0) {
-                gameOver(this);
-                break;
-            } else if (this.physics.overlap(player, o)) {
-                gameOver(this);
+
+        if (o.y > 600) { o.destroy(); obstacles.splice(i, 1); continue; }
+
+        for (let j = defenders.length - 1; j >= 0; j--) {
+            let d = defenders[j];
+            if (scene.physics.overlap(o, d)) {
+                d.destroy(); defenders.splice(j, 1);
+                o.destroy(); obstacles.splice(i, 1);
                 break;
             }
         }
-    }
 
+        if (o.y > 580 && defenders.length === 0) gameOver(scene);
+        if (scene.physics.overlap(player, o)) gameOver(scene);
+    }
+}
+
+function handleBullets(scene) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         b.y -= 10;
-        if (b.y < 0) {
+        if (b.y < 0) { b.destroy(); bullets.splice(i, 1); continue; }
+
+        if (mode === 'boss' && boss && scene.physics.overlap(b, boss)) {
+            bossHealth--;
             b.destroy();
             bullets.splice(i, 1);
-        } else {
-            for (let j = obstacles.length - 1; j >= 0; j--) {
-                let o = obstacles[j];
-                if (this.physics.overlap(b, o)) {
-                    b.destroy();
-                    bullets.splice(i, 1);
-                    o.destroy();
-                    obstacles.splice(j, 1);
-                    score += 1;
-                    break;
-                }
+            if (bossHealth <= 0) endBossFight(scene);
+            continue;
+        }
+
+        for (let j = obstacles.length - 1; j >= 0; j--) {
+            let o = obstacles[j];
+            if (scene.physics.overlap(b, o)) {
+                b.destroy(); bullets.splice(i, 1);
+                o.destroy(); obstacles.splice(j, 1);
+                score += 1;
+                break;
             }
         }
     }
-
-    stars.forEach(s => {
-        s.y += 2;
-        if (s.y > 600) s.y = 0;
-    });
 }
 
 function shootBullet(scene) {
@@ -150,21 +159,47 @@ function shootBullet(scene) {
     bullets.push(bullet);
 }
 
+function startBossFight(scene) {
+    mode = 'boss';
+    bossHealth = 20;
+    boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
+}
+
+function endBossFight(scene) {
+    mode = 'normal';
+    if (boss) { boss.destroy(); boss = null; }
+    bossBullets.forEach(b => b.destroy());
+    bossBullets = [];
+    bossBar.clear();
+
+    obstacles.forEach(o => {
+        o.body.setVelocityY(400);
+    });
+}
+
+function handleStars() {
+    stars.forEach(s => {
+        s.y += 2;
+        if (s.y > 600) s.y = 0;
+    });
+}
+
+function drawBossBar() {
+    bossBar.clear();
+    bossBar.fillStyle(0xff0000, 1);
+    let width = 200 * (bossHealth / 20);
+    bossBar.fillRect(100, 20, width, 20);
+}
+
 function gameOver(scene) {
     scene.physics.pause();
     player.setTint(0xff0000);
-    if (score > bestScore) {
-        bestScore = Math.floor(score);
-        localStorage.setItem('bestScore', bestScore);
-    }
+    if (score > bestScore) { bestScore = Math.floor(score); localStorage.setItem('bestScore', bestScore); }
     setTimeout(() => {
         score = 0;
-        obstacles.forEach(o => o.destroy());
-        obstacles = [];
-        bullets.forEach(b => b.destroy());
-        bullets = [];
-        defenders.forEach(d => d.destroy());
-        defenders = [];
+        obstacles.forEach(o => o.destroy()); obstacles = [];
+        bullets.forEach(b => b.destroy()); bullets = [];
+        defenders.forEach(d => d.destroy()); defenders = [];
         let defenderCount = Math.floor(400 / 25);
         for (let i = 0; i < defenderCount; i++) {
             let defender = scene.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
@@ -172,5 +207,7 @@ function gameOver(scene) {
         }
         player.clearTint();
         scene.physics.resume();
+        mode = 'normal';
+        bossBar.clear();
     }, 2000);
 }
