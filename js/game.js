@@ -29,10 +29,21 @@ let obstacleSpeed = 400;
 let spawnDelay = 1000;
 let bossDirection = 1;
 let bossSpeed = 100;
+let sounds = {};
 
-function preload() {}
+function preload() {
+    this.load.audio('shoot', '../assets/shoot.wav');
+    this.load.audio('bossShoot', '../assets/bossShoot.wav');
+    this.load.audio('hit', '../assets/hit.wav');
+    this.load.audio('gameOver', '../assets/gameOver.wav');
+}
 
 function create() {
+    sounds.shoot = this.sound.add('shoot');
+    sounds.bossShoot = this.sound.add('bossShoot');
+    sounds.hit = this.sound.add('hit');
+    sounds.gameOver = this.sound.add('gameOver');
+
     bestScore = localStorage.getItem('bestScore') || 0;
 
     let graphics = this.add.graphics();
@@ -85,7 +96,7 @@ function create() {
     });
 
     bossBar = this.add.graphics();
-    bossTimer = this.time.now; // premier boss après 10s
+    bossTimer = this.time.now;
 }
 
 function update() {
@@ -143,6 +154,7 @@ function handleObstacles(scene) {
             if (scene.physics.overlap(o, d)) {
                 d.destroy(); defenders.splice(j, 1);
                 o.destroy(); obstacles.splice(i, 1);
+                sounds.hit.play();
                 break;
             }
         }
@@ -162,7 +174,6 @@ function handleObstacles(scene) {
     }
 }
 
-
 function handleBullets(scene) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
@@ -172,6 +183,7 @@ function handleBullets(scene) {
         if (mode === 'boss' && boss && scene.physics.overlap(b, boss)) {
             bossHealth--;
             b.destroy(); bullets.splice(i, 1);
+            sounds.hit.play();
             if (bossHealth <= 0) endBossFight(scene);
             continue;
         }
@@ -181,6 +193,7 @@ function handleBullets(scene) {
             if (scene.physics.overlap(b, o)) {
                 b.destroy(); bullets.splice(i, 1);
                 o.destroy(); obstacles.splice(j, 1);
+                sounds.hit.play();
                 score += 1;
                 break;
             }
@@ -215,12 +228,14 @@ function shootBossProjectile(scene) {
     proj.vx = dx / dist * speed;
     proj.vy = dy / dist * speed;
     bossProjectiles.push(proj);
+    sounds.bossShoot.play();
 }
 
 function shootBullet(scene) {
     let bullet = scene.add.rectangle(player.x, player.y - 25, 5, 15, 0xffff00);
     scene.physics.add.existing(bullet);
     bullets.push(bullet);
+    sounds.shoot.play();
 }
 
 function startBossFight(scene) {
@@ -286,6 +301,7 @@ function gameOver(scene) {
     if (bossActive) endBossFight(scene);
     scene.physics.pause();
     player.setTint(0xff0000);
+    sounds.gameOver.play();
     if (score > bestScore) { bestScore = Math.floor(score); localStorage.setItem('bestScore', bestScore); }
     setTimeout(() => {
         score = 0;
