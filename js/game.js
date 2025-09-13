@@ -16,6 +16,9 @@ let stars = [];
 function preload() {}
 
 function create() {
+    // Load best score from localStorage
+    bestScore = localStorage.getItem('bestScore') || 0;
+
     // Generate stars
     for (let i = 0; i < 100; i++) {
         let star = this.add.rectangle(
@@ -36,6 +39,12 @@ function create() {
 
     // Setup cursor keys
     cursors = this.input.keyboard.createCursorKeys();
+
+    // Add score display
+    scoreText = this.add.text(10, 10, `Score: 0\nBest: ${bestScore}`, {
+        fontSize: '20px',
+        fill: '#fff'
+    });
 }
 
 function update() {}
