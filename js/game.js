@@ -12,6 +12,7 @@ let player;
 let obstacles = [];
 let bullets = [];
 let cursors;
+let keys;
 let score = 0;
 let bestScore = 0;
 let scoreText;
@@ -47,9 +48,13 @@ function create() {
     player.body.setCollideWorldBounds(true);
 
     cursors = this.input.keyboard.createCursorKeys();
+    keys = this.input.keyboard.addKeys({
+        up: 'Z', left: 'Q', down: 'S', right: 'D'
+    });
+
     this.input.keyboard.on('keydown-SPACE', () => shootBullet(this));
     this.input.on('pointerdown', pointer => {
-        if (pointer.rightButtonDown()) shootBullet(this);
+        if (pointer.leftButtonDown()) shootBullet(this);
     });
 
     scoreText = this.add.text(10, 10, `Score: 0\nBest: ${bestScore}`, { fontSize: '20px', fill: '#fff' });
@@ -68,9 +73,10 @@ function create() {
 }
 
 function update() {
-    if (cursors.left.isDown) player.body.setVelocityX(-300);
-    else if (cursors.right.isDown) player.body.setVelocityX(300);
-    else player.body.setVelocityX(0);
+    let vx = 0;
+    if (cursors.left.isDown || keys.left.isDown) vx = -300;
+    else if (cursors.right.isDown || keys.right.isDown) vx = 300;
+    player.body.setVelocityX(vx);
 
     score += 0.01;
     scoreText.setText(`Score: ${Math.floor(score)}\nBest: ${bestScore}`);
