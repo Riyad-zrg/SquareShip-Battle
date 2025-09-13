@@ -11,6 +11,7 @@ const game = new Phaser.Game(config);
 let player;
 let obstacles = [];
 let bullets = [];
+let defenders = [];
 let cursors;
 let keys;
 let score = 0;
@@ -34,6 +35,11 @@ function create() {
     graphics.generateTexture('obstacleTex', 40, 40);
     graphics.clear();
 
+    graphics.fillStyle(0x0000ff, 1);
+    graphics.fillRect(0, 0, 20, 20);
+    graphics.generateTexture('defenderTex', 20, 20);
+    graphics.clear();
+
     for (let i = 0; i < 100; i++) {
         let star = this.add.rectangle(
             Phaser.Math.Between(0, 400),
@@ -44,13 +50,17 @@ function create() {
         stars.push(star);
     }
 
-    player = this.physics.add.sprite(200, 550, 'playerTex');
+    player = this.physics.add.sprite(200, 520, 'playerTex');
     player.body.setCollideWorldBounds(true);
 
+    let defenderCount = Math.floor(400 / 25);
+    for (let i = 0; i < defenderCount; i++) {
+        let defender = this.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
+        defenders.push(defender);
+    }
+
     cursors = this.input.keyboard.createCursorKeys();
-    keys = this.input.keyboard.addKeys({
-        up: 'Z', left: 'Q', down: 'S', right: 'D'
-    });
+    keys = this.input.keyboard.addKeys({ left: 'Q', right: 'D' });
 
     this.input.keyboard.on('keydown-SPACE', () => shootBullet(this));
     this.input.on('pointerdown', pointer => {
@@ -86,9 +96,24 @@ function update() {
         if (o.y > 600) {
             o.destroy();
             obstacles.splice(i, 1);
-        } else if (this.physics.overlap(player, o)) {
-            gameOver(this);
-            break;
+        } else {
+            for (let j = defenders.length - 1; j >= 0; j--) {
+                let d = defenders[j];
+                if (this.physics.overlap(o, d)) {
+                    d.destroy();
+                    defenders.splice(j, 1);
+                    o.destroy();
+                    obstacles.splice(i, 1);
+                    break;
+                }
+            }
+            if (o.y > 580 && defenders.length === 0) {
+                gameOver(this);
+                break;
+            } else if (this.physics.overlap(player, o)) {
+                gameOver(this);
+                break;
+            }
         }
     }
 
@@ -138,6 +163,13 @@ function gameOver(scene) {
         obstacles = [];
         bullets.forEach(b => b.destroy());
         bullets = [];
+        defenders.forEach(d => d.destroy());
+        defenders = [];
+        let defenderCount = Math.floor(400 / 25);
+        for (let i = 0; i < defenderCount; i++) {
+            let defender = scene.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
+            defenders.push(defender);
+        }
         player.clearTint();
         scene.physics.resume();
     }, 2000);
