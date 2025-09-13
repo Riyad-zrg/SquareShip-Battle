@@ -58,6 +58,25 @@ function create() {
         },
         loop: true
     });
+
+    // Add collision detection
+    this.physics.add.overlap(player, obstacles, gameOver, null, this);
 }
 
 function update() {}
+
+function gameOver() {
+    this.physics.pause();
+    player.fillColor = 0xff0000;
+    if (score > bestScore) {
+        bestScore = Math.floor(score);
+        localStorage.setItem('bestScore', bestScore);
+    }
+    setTimeout(() => {
+        score = 0;
+        obstacleSpeed = 200;
+        obstacles.clear(true, true);
+        player.fillColor = 0x00ff00;
+        this.physics.resume();
+    }, 2000);
+}
