@@ -63,7 +63,30 @@ function create() {
     this.physics.add.overlap(player, obstacles, gameOver, null, this);
 }
 
-function update() {}
+function update() {
+    // Move player
+    if (cursors.left.isDown) player.body.setVelocityX(-300);
+    else if (cursors.right.isDown) player.body.setVelocityX(300);
+    else player.body.setVelocityX(0);
+
+    // Update score and obstacle speed
+    score += 0.01;
+    obstacleSpeed += 0.002;
+
+    // Update score display
+    scoreText.setText(`Score: ${Math.floor(score)}\nBest: ${bestScore}`);
+
+    // Remove obstacles that are off-screen
+    obstacles.getChildren().forEach(o => {
+        if (o.y > 600) o.destroy();
+    });
+
+    // Animate stars
+    stars.forEach(s => {
+        s.y += 2;
+        if (s.y > 600) s.y = 0;
+    });
+}
 
 function gameOver() {
     this.physics.pause();
