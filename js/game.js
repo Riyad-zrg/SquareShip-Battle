@@ -10,6 +10,7 @@ const game = new Phaser.Game(config);
 
 let player;
 let obstacles = [];
+let bullets = [];
 let cursors;
 let score = 0;
 let bestScore = 0;
@@ -46,6 +47,10 @@ function create() {
     player.body.setCollideWorldBounds(true);
 
     cursors = this.input.keyboard.createCursorKeys();
+    this.input.keyboard.on('keydown-SPACE', () => shootBullet(this));
+    this.input.on('pointerdown', pointer => {
+        if (pointer.rightButtonDown()) shootBullet(this);
+    });
 
     scoreText = this.add.text(10, 10, `Score: 0\nBest: ${bestScore}`, { fontSize: '20px', fill: '#fff' });
 
@@ -55,7 +60,7 @@ function create() {
             let x = Phaser.Math.Between(20, 380);
             let obstacle = this.physics.add.sprite(x, -50, 'obstacleTex');
             obstacle.body.setAllowGravity(false);
-            obstacle.body.setVelocityY(400); //Speed of obstacles
+            obstacle.body.setVelocityY(400);
             obstacles.push(obstacle);
         },
         loop: true
@@ -81,10 +86,37 @@ function update() {
         }
     }
 
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.y -= 10;
+        if (b.y < 0) {
+            b.destroy();
+            bullets.splice(i, 1);
+        } else {
+            for (let j = obstacles.length - 1; j >= 0; j--) {
+                let o = obstacles[j];
+                if (this.physics.overlap(b, o)) {
+                    b.destroy();
+                    bullets.splice(i, 1);
+                    o.destroy();
+                    obstacles.splice(j, 1);
+                    score += 1;
+                    break;
+                }
+            }
+        }
+    }
+
     stars.forEach(s => {
         s.y += 2;
         if (s.y > 600) s.y = 0;
     });
+}
+
+function shootBullet(scene) {
+    let bullet = scene.add.rectangle(player.x, player.y - 25, 5, 15, 0xffff00);
+    scene.physics.add.existing(bullet);
+    bullets.push(bullet);
 }
 
 function gameOver(scene) {
@@ -98,6 +130,8 @@ function gameOver(scene) {
         score = 0;
         obstacles.forEach(o => o.destroy());
         obstacles = [];
+        bullets.forEach(b => b.destroy());
+        bullets = [];
         player.clearTint();
         scene.physics.resume();
     }, 2000);
