@@ -45,6 +45,19 @@ function create() {
         fontSize: '20px',
         fill: '#fff'
     });
+
+    // Spawn obstacles every second
+    this.time.addEvent({
+        delay: 1000,
+        callback: () => {
+            let x = Phaser.Math.Between(20, 380);
+            let obstacle = this.add.rectangle(x, 0, 40, 40, 0xff0000);
+            this.physics.add.existing(obstacle);
+            obstacle.body.setVelocityY(obstacleSpeed);
+            obstacles.add(obstacle);
+        },
+        loop: true
+    });
 }
 
 function update() {}
