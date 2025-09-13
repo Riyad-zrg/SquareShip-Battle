@@ -12,6 +12,7 @@ let player;
 let obstacles = [];
 let bullets = [];
 let defenders = [];
+let bossProjectiles = [];
 let cursors;
 let keys;
 let score = 0;
@@ -80,7 +81,7 @@ function create() {
     });
 
     bossBar = this.add.graphics();
-    bossTimer = this.time.now; // premier boss apparaîtra après 10 secondes
+    bossTimer = this.time.now;
 }
 
 function update() {
@@ -99,8 +100,12 @@ function update() {
     handleObstacles(this);
     handleBullets(this);
     handleStars();
+    handleBossProjectiles(this);
 
-    if (mode === 'boss') drawBossBar();
+    if (mode === 'boss') {
+        drawBossBar();
+        if (this.time.now % 1000 < 20) shootBossProjectile(this);
+    }
 }
 
 function spawnObstacle(scene) {
@@ -155,21 +160,52 @@ function handleBullets(scene) {
     }
 }
 
+function handleBossProjectiles(scene) {
+    for (let i = bossProjectiles.length - 1; i >= 0; i--) {
+        let p = bossProjectiles[i];
+        if (p.y > 600 || p.y < 0 || p.x < 0 || p.x > 400) {
+            p.destroy(); bossProjectiles.splice(i, 1);
+            continue;
+        }
+        if (scene.physics.overlap(player, p)) gameOver(scene);
+    }
+}
+
 function shootBullet(scene) {
     let bullet = scene.add.rectangle(player.x, player.y - 25, 5, 15, 0xffff00);
     scene.physics.add.existing(bullet);
     bullets.push(bullet);
 }
 
+function shootBossProjectile(scene) {
+    if (!boss) return;
+
+    let proj = scene.add.rectangle(boss.x, boss.y + 50, 10, 10, 0xffff00);
+    scene.physics.add.existing(proj);
+    proj.body.setAllowGravity(false);
+
+    let targetX = player.x;
+    let targetY = player.y;
+
+    let dx = targetX - boss.x;
+    let dy = targetY - (boss.y + 50);
+    let magnitude = Math.sqrt(dx*dx + dy*dy);
+    let speed = 200;
+
+    proj.body.setVelocity((dx/magnitude)*speed, (dy/magnitude)*speed);
+    bossProjectiles.push(proj);
+}
+
 function startBossFight(scene) {
     if (mode !== 'normal') return;
     mode = 'waiting';
     bossActive = true;
+
     let waitForBullets = scene.time.addEvent({
         delay: 100,
         loop: true,
         callback: () => {
-            if (bullets.length === 0) {
+            if (bullets.length === 0 && bossProjectiles.length === 0) {
                 waitForBullets.remove();
                 scene.time.delayedCall(500, () => {
                     mode = 'alert';
@@ -182,7 +218,7 @@ function startBossFight(scene) {
                         repeat: 1,
                         duration: 800,
                     });
-                    scene.time.delayedCall(1600, () => {
+                    scene.time.delayedCall(800, () => {
                         alertRect.destroy();
                         alertText.destroy();
                         mode = 'boss';
@@ -195,16 +231,14 @@ function startBossFight(scene) {
     });
 }
 
-
-
-
-
 function endBossFight(scene) {
     mode = 'normal';
     bossActive = false;
     bossTimer = scene.time.now;
     if (boss) { boss.destroy(); boss = null; }
     bossBar.clear();
+    bossProjectiles.forEach(p => p.destroy());
+    bossProjectiles = [];
     obstacles.forEach(o => o.body.setVelocityY(400));
 }
 
@@ -223,7 +257,7 @@ function drawBossBar() {
 }
 
 function gameOver(scene) {
-    endBossFight();
+    if (bossActive) endBossFight(scene);
     scene.physics.pause();
     player.setTint(0xff0000);
     if (score > bestScore) { bestScore = Math.floor(score); localStorage.setItem('bestScore', bestScore); }
@@ -231,6 +265,7 @@ function gameOver(scene) {
         score = 0;
         obstacles.forEach(o => o.destroy()); obstacles = [];
         bullets.forEach(b => b.destroy()); bullets = [];
+        bossProjectiles.forEach(p => p.destroy()); bossProjectiles = [];
         defenders.forEach(d => d.destroy()); defenders = [];
         let defenderCount = Math.floor(400 / 25);
         for (let i = 0; i < defenderCount; i++) {
