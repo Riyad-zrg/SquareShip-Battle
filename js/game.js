@@ -16,6 +16,7 @@ let stars = [];
 function preload() {}
 
 function create() {
+    // Generate stars
     for (let i = 0; i < 100; i++) {
         let star = this.add.rectangle(
             Phaser.Math.Between(0, 400),
@@ -24,6 +25,11 @@ function create() {
         );
         stars.push(star);
     }
+
+    // Add player
+    player = this.add.rectangle(200, 550, 40, 40, 0x00ff00);
+    this.physics.add.existing(player);
+    player.body.setCollideWorldBounds(true);
 }
 
 function update() {}
