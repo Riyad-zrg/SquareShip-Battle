@@ -8,98 +8,97 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-let player, obstacles, cursors;
-let score = 0, bestScore = 0, scoreText;
-let obstacleSpeed = 200;
+let player;
+let obstacles = [];
+let cursors;
+let score = 0;
+let bestScore = 0;
+let scoreText;
 let stars = [];
 
 function preload() {}
 
 function create() {
-    // Load best score from localStorage
     bestScore = localStorage.getItem('bestScore') || 0;
 
-    // Generate stars
+    let graphics = this.add.graphics();
+    graphics.fillStyle(0x00ff00, 1);
+    graphics.fillRect(0, 0, 40, 40);
+    graphics.generateTexture('playerTex', 40, 40);
+    graphics.clear();
+
+    graphics.fillStyle(0xff0000, 1);
+    graphics.fillRect(0, 0, 40, 40);
+    graphics.generateTexture('obstacleTex', 40, 40);
+    graphics.clear();
+
     for (let i = 0; i < 100; i++) {
         let star = this.add.rectangle(
             Phaser.Math.Between(0, 400),
             Phaser.Math.Between(0, 600),
-            2, 2, 0xffffff
+            2, 2,
+            0xffffff
         );
         stars.push(star);
     }
 
-    // Add player
-    player = this.add.rectangle(200, 550, 40, 40, 0x00ff00);
-    this.physics.add.existing(player);
+    player = this.physics.add.sprite(200, 550, 'playerTex');
     player.body.setCollideWorldBounds(true);
 
-    // Add obstacles group
-    obstacles = this.physics.add.group();
-
-    // Setup cursor keys
     cursors = this.input.keyboard.createCursorKeys();
 
-    // Add score display
-    scoreText = this.add.text(10, 10, `Score: 0\nBest: ${bestScore}`, {
-        fontSize: '20px',
-        fill: '#fff'
-    });
+    scoreText = this.add.text(10, 10, `Score: 0\nBest: ${bestScore}`, { fontSize: '20px', fill: '#fff' });
 
-    // Spawn obstacles every second
     this.time.addEvent({
         delay: 1000,
         callback: () => {
             let x = Phaser.Math.Between(20, 380);
-            let obstacle = this.add.rectangle(x, 0, 40, 40, 0xff0000);
-            this.physics.add.existing(obstacle);
-            obstacle.body.setVelocityY(obstacleSpeed);
-            obstacles.add(obstacle);
+            let obstacle = this.physics.add.sprite(x, 0, 'obstacleTex');
+            obstacle.body.setAllowGravity(true);
+            obstacle.body.setGravityY(300);
+            obstacles.push(obstacle);
         },
         loop: true
     });
-
-    // Add collision detection
-    this.physics.add.overlap(player, obstacles, gameOver, null, this);
 }
 
 function update() {
-    // Move player
     if (cursors.left.isDown) player.body.setVelocityX(-300);
     else if (cursors.right.isDown) player.body.setVelocityX(300);
     else player.body.setVelocityX(0);
 
-    // Update score and obstacle speed
     score += 0.01;
-    obstacleSpeed += 0.002;
-
-    // Update score display
     scoreText.setText(`Score: ${Math.floor(score)}\nBest: ${bestScore}`);
 
-    // Remove obstacles that are off-screen
-    obstacles.getChildren().forEach(o => {
-        if (o.y > 600) o.destroy();
-    });
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        let o = obstacles[i];
+        if (o.y > 600) {
+            o.destroy();
+            obstacles.splice(i, 1);
+        } else if (this.physics.overlap(player, o)) {
+            gameOver(this);
+            break;
+        }
+    }
 
-    // Animate stars
     stars.forEach(s => {
         s.y += 2;
         if (s.y > 600) s.y = 0;
     });
 }
 
-function gameOver() {
-    this.physics.pause();
-    player.fillColor = 0xff0000;
+function gameOver(scene) {
+    scene.physics.pause();
+    player.setTint(0xff0000);
     if (score > bestScore) {
         bestScore = Math.floor(score);
         localStorage.setItem('bestScore', bestScore);
     }
     setTimeout(() => {
         score = 0;
-        obstacleSpeed = 200;
-        obstacles.clear(true, true);
-        player.fillColor = 0x00ff00;
-        this.physics.resume();
+        obstacles.forEach(o => o.destroy());
+        obstacles = [];
+        player.clearTint();
+        scene.physics.resume();
     }, 2000);
 }
