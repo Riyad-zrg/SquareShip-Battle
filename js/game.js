@@ -25,7 +25,7 @@ let bossHealth = 20;
 let bossBar;
 let bossActive = false;
 let bossTimer = 0;
-let obstacleSpeed = 400;
+let obstacleSpeed = 0.5 * config.height;
 let spawnDelay = 1000;
 let bossDirection = 1;
 let bossSpeed = 100;
