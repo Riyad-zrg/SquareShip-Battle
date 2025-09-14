@@ -76,10 +76,12 @@ function create() {
 
     player = this.physics.add.sprite(200, 520, 'playerTex');
     player.body.setCollideWorldBounds(true);
+    player.setDepth(5);
 
     let defenderCount = Math.floor(400 / 25);
     for (let i = 0; i < defenderCount; i++) {
         let defender = this.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
+        defender.setDepth(4);
         defenders.push(defender);
     }
 
@@ -90,6 +92,7 @@ function create() {
     this.input.on('pointerdown', pointer => { if (pointer.leftButtonDown()) shootBullet(this); });
 
     scoreText = this.add.text(10, 10, `Score: 0\nBest: ${bestScore}`, { fontSize: '20px', fill: '#fff' });
+    scoreText.setDepth(10);
 
     this.time.addEvent({
         delay: spawnDelay,
@@ -98,6 +101,7 @@ function create() {
     });
 
     bossBar = this.add.graphics();
+    bossBar.setDepth(9);
     bossTimer = this.time.now;
 }
 
@@ -127,7 +131,6 @@ function update() {
             boss.x += bossDirection * bossSpeed * (this.game.loop.delta / 1000);
             if (boss.x < 50) bossDirection = 1;
             else if (boss.x > 350) bossDirection = -1;
-
             if (Phaser.Math.Between(0, 100) < 2) shootBossProjectile(this);
         }
     }
@@ -141,6 +144,7 @@ function update() {
 function spawnObstacle(scene) {
     let x = Phaser.Math.Between(20, 380);
     let obstacle = scene.physics.add.sprite(x, -50, 'obstacleTex');
+    obstacle.setDepth(1);
     obstacle.body.setAllowGravity(false);
     obstacle.body.setVelocityY(obstacleSpeed);
     obstacles.push(obstacle);
@@ -208,12 +212,10 @@ function handleBossProjectiles(scene) {
         let p = bossProjectiles[i];
         p.x += p.vx * (scene.game.loop.delta / 1000);
         p.y += p.vy * (scene.game.loop.delta / 1000);
-
         if (p.y > 600 || p.y < 0 || p.x < 0 || p.x > 400) {
             p.destroy(); bossProjectiles.splice(i, 1);
             continue;
         }
-
         if (scene.physics.overlap(player, p)) gameOver(scene);
     }
 }
@@ -227,6 +229,7 @@ function shootBossProjectile(scene) {
     let speed = 200;
     let proj = scene.add.rectangle(bx, by, 8, 8, 0xffff00);
     scene.physics.add.existing(proj);
+    proj.setDepth(3);
     proj.vx = dx / dist * speed;
     proj.vy = dy / dist * speed;
     bossProjectiles.push(proj);
@@ -236,6 +239,7 @@ function shootBossProjectile(scene) {
 function shootBullet(scene) {
     let bullet = scene.add.rectangle(player.x, player.y - 25, 5, 15, 0xffff00);
     scene.physics.add.existing(bullet);
+    bullet.setDepth(6);
     bullets.push(bullet);
     sounds.shoot.play();
 }
@@ -255,6 +259,7 @@ function startBossFight(scene) {
                     sounds.alarm.play();
                     let alertRect = scene.add.rectangle(200, 300, 400, 600, 0xff0000, 0.15);
                     let alertText = scene.add.text(200, 300, 'BOSS INCOMING', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
+                    alertText.setDepth(11);
                     scene.tweens.add({
                         targets: alertRect,
                         alpha: 0.25,
@@ -268,6 +273,7 @@ function startBossFight(scene) {
                         mode = 'boss';
                         bossHealth = 20;
                         boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
+                        boss.setDepth(2);
                     });
                 });
             }
@@ -296,8 +302,8 @@ function handleStars() {
 function drawBossBar() {
     bossBar.clear();
     bossBar.fillStyle(0xff0000, 1);
-    let width = 200 * (bossHealth / 20);
-    bossBar.fillRect(100, 20, width, 20);
+    let width = 150 * (bossHealth / 20);
+    bossBar.fillRect(140, 10, width, 15);
 }
 
 function gameOver(scene) {
@@ -315,6 +321,7 @@ function gameOver(scene) {
         let defenderCount = Math.floor(400 / 25);
         for (let i = 0; i < defenderCount; i++) {
             let defender = scene.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
+            defender.setDepth(4);
             defenders.push(defender);
         }
         player.clearTint();
