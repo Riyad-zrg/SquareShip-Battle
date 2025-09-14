@@ -29,6 +29,7 @@ let obstacleSpeed = 400;
 let spawnDelay = 1000;
 let bossDirection = 1;
 let bossSpeed = 100;
+let bossType = "classic";
 let sounds = {};
 
 function preload() {
@@ -125,14 +126,22 @@ function update() {
     handleBossProjectiles(this);
     handleStars();
 
-    if (mode === 'boss') {
+    if (mode === 'boss' && boss) {
         drawBossBar();
-        if (boss) {
+
+        if (bossType !== "sniper") {
             boss.x += bossDirection * bossSpeed * (this.game.loop.delta / 1000);
             if (boss.x < 50) bossDirection = 1;
             else if (boss.x > 350) bossDirection = -1;
-            if (Phaser.Math.Between(0, 100) < 2) shootBossProjectile(this);
         }
+
+        let shootChance = 0;
+        if (bossType === "classic") shootChance = 2;
+        else if (bossType === "tank") shootChance = 1;
+        else if (bossType === "fast") shootChance = 4;
+        else if (bossType === "sniper") shootChance = 3;
+
+        if (Phaser.Math.Between(0, 100) < shootChance) shootBossProjectile(this, bossType);
     }
 
     if (Math.floor(score) % 50 === 0) {
@@ -162,17 +171,6 @@ function handleObstacles(scene) {
                 o.destroy(); obstacles.splice(i, 1);
                 sounds.hit.play();
                 break;
-            }
-        }
-
-        if (defenders.length > 0) {
-            let lowestDefenderY = Math.max(...defenders.map(d => d.y));
-            if (o.y >= lowestDefenderY) {
-                gameOver(scene);
-            }
-        } else {
-            if (o.y >= player.y) {
-                gameOver(scene);
             }
         }
 
@@ -220,13 +218,13 @@ function handleBossProjectiles(scene) {
     }
 }
 
-function shootBossProjectile(scene) {
+function shootBossProjectile(scene, type) {
     if (!boss) return;
     let bx = boss.x, by = boss.y;
     let px = player.x, py = player.y;
     let dx = px - bx, dy = py - by;
     let dist = Math.sqrt(dx*dx + dy*dy);
-    let speed = 200;
+    let speed = (type === "sniper") ? 400 : 200;
     let proj = scene.add.rectangle(bx, by, 8, 8, 0xffff00);
     scene.physics.add.existing(proj);
     proj.setDepth(3);
@@ -248,6 +246,9 @@ function startBossFight(scene) {
     if (mode !== 'normal') return;
     mode = 'waiting';
     bossActive = true;
+
+    bossType = Phaser.Math.RND.pick(["classic", "tank", "fast", "sniper"]);
+
     let waitForBullets = scene.time.addEvent({
         delay: 100,
         loop: true,
@@ -260,18 +261,16 @@ function startBossFight(scene) {
                     let alertRect = scene.add.rectangle(200, 300, 400, 600, 0xff0000, 0.15);
                     let alertText = scene.add.text(200, 300, 'BOSS INCOMING', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
                     alertText.setDepth(11);
-                    scene.tweens.add({
-                        targets: alertRect,
-                        alpha: 0.25,
-                        yoyo: true,
-                        repeat: 1,
-                        duration: 800,
-                    });
                     scene.time.delayedCall(1000, () => {
                         alertRect.destroy();
                         alertText.destroy();
                         mode = 'boss';
-                        bossHealth = 20;
+
+                        if (bossType === "classic") { bossHealth = 20; bossSpeed = 100; }
+                        else if (bossType === "tank") { bossHealth = 40; bossSpeed = 50; }
+                        else if (bossType === "fast") { bossHealth = 15; bossSpeed = 200; }
+                        else if (bossType === "sniper") { bossHealth = 10; bossSpeed = 0; }
+
                         boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
                         boss.setDepth(2);
                     });
@@ -287,7 +286,6 @@ function endBossFight(scene) {
     bossTimer = scene.time.now;
     if (boss) { boss.destroy(); boss = null; }
     bossBar.clear();
-    obstacles.forEach(o => o.body.setVelocityY(obstacleSpeed));
     bossProjectiles.forEach(p => p.destroy());
     bossProjectiles = [];
 }
@@ -301,10 +299,21 @@ function handleStars() {
 
 function drawBossBar() {
     bossBar.clear();
+    const maxBarWidth = 200;
+    const barHeight = 15;
+    const x = (config.width - maxBarWidth) / 2;
+    const y = 20;
+    let maxHealth = 20;
+    if (bossType === "tank") maxHealth = 40;
+    else if (bossType === "fast") maxHealth = 15;
+    else if (bossType === "sniper") maxHealth = 10;
+    let width = maxBarWidth * Math.max(0, bossHealth) / maxHealth;
+    bossBar.fillStyle(0x555555, 1);
+    bossBar.fillRect(x, y, maxBarWidth, barHeight);
     bossBar.fillStyle(0xff0000, 1);
-    let width = 150 * (bossHealth / 20);
-    bossBar.fillRect(140, 10, width, 15);
+    bossBar.fillRect(x, y, width, barHeight);
 }
+
 
 function gameOver(scene) {
     if (bossActive) endBossFight(scene);
