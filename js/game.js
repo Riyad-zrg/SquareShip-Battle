@@ -32,10 +32,11 @@ let bossSpeed = 100;
 let sounds = {};
 
 function preload() {
-    this.load.audio('shoot', '../assets/shoot.wav');
-    this.load.audio('bossShoot', '../assets/bossShoot.wav');
-    this.load.audio('hit', '../assets/hit.wav');
-    this.load.audio('gameOver', '../assets/gameOver.wav');
+    this.load.audio('shoot', 'assets/shoot.wav');
+    this.load.audio('bossShoot', 'assets/bossShoot.wav');
+    this.load.audio('hit', 'assets/hit.wav');
+    this.load.audio('gameOver', 'assets/gameOver.wav');
+    this.load.audio('alarm', 'assets/alarm.wav');
 }
 
 function create() {
@@ -43,6 +44,7 @@ function create() {
     sounds.bossShoot = this.sound.add('bossShoot');
     sounds.hit = this.sound.add('hit');
     sounds.gameOver = this.sound.add('gameOver');
+    sounds.alarm = this.sound.add('alarm');
 
     bestScore = localStorage.getItem('bestScore') || 0;
 
@@ -250,6 +252,7 @@ function startBossFight(scene) {
                 waitForBullets.remove();
                 scene.time.delayedCall(500, () => {
                     mode = 'alert';
+                    sounds.alarm.play();
                     let alertRect = scene.add.rectangle(200, 300, 400, 600, 0xff0000, 0.15);
                     let alertText = scene.add.text(200, 300, 'BOSS INCOMING', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
                     scene.tweens.add({
