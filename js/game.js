@@ -38,6 +38,7 @@ function preload() {
     this.load.audio('hit', 'assets/hit.wav');
     this.load.audio('gameOver', 'assets/gameOver.wav');
     this.load.audio('alarm', 'assets/alarm.wav');
+    this.load.audio('bgMusic', 'assets/bgMusic.mp3');
 }
 
 function create() {
@@ -46,6 +47,9 @@ function create() {
     sounds.hit = this.sound.add('hit');
     sounds.gameOver = this.sound.add('gameOver');
     sounds.alarm = this.sound.add('alarm');
+
+    music = this.sound.add('bgMusic', { loop: true, volume: 0.5 });
+    music.play();
 
     bestScore = localStorage.getItem('bestScore') || 0;
 
