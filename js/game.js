@@ -367,9 +367,10 @@ function gameOver(scene) {
 
     gameOverMenu = scene.add.container(config.width / 2, config.height / 2);
 
-    let bg = scene.add.rectangle(0, 0, 300, 200, 0x000000, 0.8).setStrokeStyle(2, 0xffffff);
+    let bg = scene.add.rectangle(0, 0, 300, 220, 0x000000, 0.8).setStrokeStyle(2, 0xffffff);
     let retryText = scene.add.text(0, -40, 'RETRY', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5).setInteractive();
     let musicText = scene.add.text(0, 40, `MUSIC: ${musicOn ? 'ON' : 'OFF'}`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+    let copyrightText = scene.add.text(0, 90, '© SquareShip Battle - Riyad-zrg', { fontSize: '12px', fill: '#fff'}).setOrigin(0.5).setAlpha(0.8);
 
     retryText.on('pointerover', () => retryText.setStyle({ fill: '#ff0' }));
     retryText.on('pointerout', () => retryText.setStyle({ fill: '#fff' }));
@@ -387,7 +388,8 @@ function gameOver(scene) {
         musicText.setText(`MUSIC: ${musicOn ? 'ON' : 'OFF'}`);
     });
 
-    gameOverMenu.add([bg, retryText, musicText]);
+    gameOverMenu.add([bg, retryText, musicText, copyrightText]);
+
     scene.tweens.add({
         targets: gameOverMenu,
         scaleX: { from: 0, to: 1 },
@@ -396,6 +398,7 @@ function gameOver(scene) {
         duration: 500
     });
 }
+
 
 function resetGame(scene) {
     score = 0;
