@@ -1,7 +1,7 @@
 const config = {
     type: Phaser.AUTO,
-    width: 400,
-    height: 600,
+    width: 800,
+    height: 1200,
     physics: { default: 'arcade', arcade: { debug: false } },
     scene: { preload, create, update }
 };
@@ -61,31 +61,31 @@ function create() {
 
     let graphics = this.add.graphics();
     graphics.fillStyle(0x00ff00, 1);
-    graphics.fillRect(0, 0, 40, 40);
-    graphics.generateTexture('playerTex', 40, 40);
+    graphics.fillRect(0, 0, 80, 80);
+    graphics.generateTexture('playerTex', 80, 80);
     graphics.clear();
 
     graphics.fillStyle(0xff0000, 1);
-    graphics.fillRect(0, 0, 40, 40);
-    graphics.generateTexture('obstacleTex', 40, 40);
+    graphics.fillRect(0, 0, 80, 80);
+    graphics.generateTexture('obstacleTex', 80, 80);
     graphics.clear();
 
     graphics.fillStyle(0x0000ff, 1);
-    graphics.fillRect(0, 0, 20, 20);
-    graphics.generateTexture('defenderTex', 20, 20);
+    graphics.fillRect(0, 0, 40, 40);
+    graphics.generateTexture('defenderTex', 40, 40);
     graphics.clear();
 
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 200; i++) {
         let star = this.add.rectangle(
-            Phaser.Math.Between(0, 400),
-            Phaser.Math.Between(0, 600),
-            2, 2,
+            Phaser.Math.Between(0, 800),
+            Phaser.Math.Between(0, 1200),
+            4, 4,
             0xffffff
         );
         stars.push(star);
     }
 
-    player = this.physics.add.sprite(200, 520, 'playerTex');
+    player = this.physics.add.sprite(400, 1040, 'playerTex');
     player.body.setCollideWorldBounds(true);
     player.setDepth(5);
 
@@ -97,7 +97,7 @@ function create() {
     this.input.keyboard.on('keydown-SPACE', () => shootBullet(this));
     this.input.on('pointerdown', pointer => { if (pointer.leftButtonDown()) shootBullet(this); });
 
-    scoreText = this.add.text(10, 10, `Score: 0\nBest: ${bestScore}`, { fontSize: '20px', fill: '#fff' });
+    scoreText = this.add.text(20, 20, `Score: 0\nBest: ${bestScore}`, { fontSize: '40px', fill: '#fff' });
     scoreText.setDepth(10);
 
     this.time.addEvent({
@@ -107,15 +107,15 @@ function create() {
     });
 
     bossBar = this.add.graphics();
-    bossBar.setDepth(9);
+    bossBar.setDepth(15);
     bossTimer = this.time.now;
 }
 
 function update() {
     if (!menuActive) {
         let vx = 0;
-        if (cursors.left.isDown || keys.left.isDown) vx = -300;
-        else if (cursors.right.isDown || keys.right.isDown) vx = 300;
+        if (cursors.left.isDown || keys.left.isDown) vx = -600;
+        else if (cursors.right.isDown || keys.right.isDown) vx = 600;
         player.body.setVelocityX(vx);
 
         score += 0.01;
@@ -137,8 +137,8 @@ function update() {
 
             if (bossType !== "sniper") {
                 boss.x += bossDirection * bossSpeed * (this.game.loop.delta / 1000);
-                if (boss.x < 50) bossDirection = 1;
-                else if (boss.x > 350) bossDirection = -1;
+                if (boss.x < 100) bossDirection = 1;
+                else if (boss.x > 700) bossDirection = -1;
             }
 
             let shootChance = 0;
@@ -160,17 +160,17 @@ function update() {
 function resetDefenders(scene) {
     defenders.forEach(d => d.destroy());
     defenders = [];
-    let defenderCount = Math.floor(400 / 25);
+    let defenderCount = Math.floor(800 / 50);
     for (let i = 0; i < defenderCount; i++) {
-        let defender = scene.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
+        let defender = scene.physics.add.sprite(25 + i * 50, 1160, 'defenderTex');
         defender.setDepth(4);
         defenders.push(defender);
     }
 }
 
 function spawnObstacle(scene) {
-    let x = Phaser.Math.Between(20, 380);
-    let obstacle = scene.physics.add.sprite(x, -50, 'obstacleTex');
+    let x = Phaser.Math.Between(40, 760);
+    let obstacle = scene.physics.add.sprite(x, -100, 'obstacleTex');
     obstacle.setDepth(1);
     obstacle.body.setAllowGravity(false);
     obstacle.body.setVelocityY(obstacleSpeed);
@@ -199,24 +199,22 @@ function handleObstacles(scene) {
             return;
         }
 
-        if (o.y >= 580) {
+        if (o.y >= 1160) {
             gameOver(scene);
             return;
         }
 
-        if (o.y > 600) {
+        if (o.y > 1200) {
             o.destroy();
             obstacles.splice(i, 1);
         }
     }
 }
 
-
-
 function handleBullets(scene) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
-        b.y -= 10;
+        b.y -= 20;
         if (b.y < 0) { b.destroy(); bullets.splice(i, 1); continue; }
 
         if (mode === 'boss' && boss && scene.physics.overlap(b, boss)) {
@@ -243,9 +241,10 @@ function handleBullets(scene) {
 function handleBossProjectiles(scene) {
     for (let i = bossProjectiles.length - 1; i >= 0; i--) {
         let p = bossProjectiles[i];
+        if (!p || !p.body) { bossProjectiles.splice(i, 1); continue; }
         p.x += p.vx * (scene.game.loop.delta / 1000);
         p.y += p.vy * (scene.game.loop.delta / 1000);
-        if (p.y > 600 || p.y < 0 || p.x < 0 || p.x > 400) {
+        if (p.y > 1200 || p.y < 0 || p.x < 0 || p.x > 800) {
             p.destroy(); bossProjectiles.splice(i, 1);
             continue;
         }
@@ -260,7 +259,7 @@ function shootBossProjectile(scene, type) {
     let dx = px - bx, dy = py - by;
     let dist = Math.sqrt(dx*dx + dy*dy);
     let speed = (type === "sniper") ? 400 : 200;
-    let proj = scene.add.rectangle(bx, by, 8, 8, 0xffff00);
+    let proj = scene.add.rectangle(bx, by, 16, 16, 0xffff00);
     scene.physics.add.existing(proj);
     proj.setDepth(3);
     proj.vx = dx / dist * speed;
@@ -274,7 +273,7 @@ function shootBullet(scene) {
     if (scene.time.now - lastShootTime < shootCooldown) return;
     lastShootTime = scene.time.now;
 
-    let bullet = scene.add.rectangle(player.x, player.y - 25, 5, 15, 0xffff00);
+    let bullet = scene.add.rectangle(player.x, player.y - 50, 10, 30, 0xffff00);
     scene.physics.add.existing(bullet);
     bullet.setDepth(6);
     bullets.push(bullet);
@@ -283,10 +282,10 @@ function shootBullet(scene) {
 
 function drawBossBar() {
     bossBar.clear();
-    const maxBarWidth = 200;
-    const barHeight = 15;
+    const maxBarWidth = 400;
+    const barHeight = 30;
     const x = (config.width - maxBarWidth) / 2;
-    const y = 20;
+    const y = 40;
     let maxHealth = 20;
     if (bossType === "tank") maxHealth = 40;
     else if (bossType === "fast") maxHealth = 15;
@@ -314,9 +313,9 @@ function startBossFight(scene) {
                 scene.time.delayedCall(500, () => {
                     mode = 'alert';
                     sounds.alarm.play();
-                    let alertRect = scene.add.rectangle(200, 300, 400, 600, 0xff0000, 0.15);
-                    let alertText = scene.add.text(200, 300, 'BOSS INCOMING', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
-                    alertText.setDepth(11);
+                    let alertRect = scene.add.rectangle(400, 600, 800, 1200, 0xff0000, 0.15);
+                    let alertText = scene.add.text(400, 600, 'BOSS INCOMING', { fontSize: '64px', fill: '#fff' }).setOrigin(0.5);
+                    alertText.setDepth(20);
                     scene.time.delayedCall(1000, () => {
                         alertRect.destroy();
                         alertText.destroy();
@@ -326,8 +325,10 @@ function startBossFight(scene) {
                         else if (bossType === "fast") { bossHealth = 15; bossSpeed = 200; }
                         else if (bossType === "sniper") { bossHealth = 10; bossSpeed = 0; }
 
-                        boss = scene.physics.add.sprite(200, 100, 'obstacleTex').setScale(3, 3);
+                        boss = scene.physics.add.sprite(400, 200, 'obstacleTex');
+                        boss.setScale(2.5, 2.5);
                         boss.setDepth(2);
+                        boss.body.setSize(boss.width, boss.height);
                     });
                 });
             }
@@ -341,14 +342,14 @@ function endBossFight(scene) {
     bossTimer = scene.time.now;
     if (boss) { boss.destroy(); boss = null; }
     bossBar.clear();
-    bossProjectiles.forEach(p => p.destroy());
+    bossProjectiles.forEach(p => { if(p) p.destroy(); });
     bossProjectiles = [];
 }
 
 function handleStars() {
     stars.forEach(s => {
-        s.y += 2;
-        if (s.y > 600) s.y = 0;
+        s.y += 4;
+        if (s.y > 1200) s.y = 0;
     });
 }
 
@@ -367,10 +368,10 @@ function gameOver(scene) {
 
     gameOverMenu = scene.add.container(config.width / 2, config.height / 2);
 
-    let bg = scene.add.rectangle(0, 0, 300, 220, 0x000000, 0.8).setStrokeStyle(2, 0xffffff);
-    let retryText = scene.add.text(0, -40, 'RETRY', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5).setInteractive();
-    let musicText = scene.add.text(0, 40, `MUSIC: ${musicOn ? 'ON' : 'OFF'}`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setInteractive();
-    let copyrightText = scene.add.text(0, 90, '© SquareShip Battle - Riyad-zrg', { fontSize: '12px', fill: '#fff'}).setOrigin(0.5).setAlpha(0.8);
+    let bg = scene.add.rectangle(0, 0, 600, 440, 0x000000, 0.8).setStrokeStyle(4, 0xffffff);
+    let retryText = scene.add.text(0, -80, 'RETRY', { fontSize: '64px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+    let musicText = scene.add.text(0, 80, `MUSIC: ${musicOn ? 'ON' : 'OFF'}`, { fontSize: '48px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+    let copyrightText = scene.add.text(0, 180, '© SquareShip Battle - Riyad-zrg', { fontSize: '24px', fill: '#fff'}).setOrigin(0.5).setAlpha(0.8);
 
     retryText.on('pointerover', () => retryText.setStyle({ fill: '#ff0' }));
     retryText.on('pointerout', () => retryText.setStyle({ fill: '#fff' }));
@@ -389,22 +390,14 @@ function gameOver(scene) {
     });
 
     gameOverMenu.add([bg, retryText, musicText, copyrightText]);
-
-    scene.tweens.add({
-        targets: gameOverMenu,
-        scaleX: { from: 0, to: 1 },
-        scaleY: { from: 0, to: 1 },
-        ease: 'Back',
-        duration: 500
-    });
+    gameOverMenu.setDepth(30);
 }
-
 
 function resetGame(scene) {
     score = 0;
     obstacles.forEach(o => o.destroy()); obstacles = [];
     bullets.forEach(b => b.destroy()); bullets = [];
-    bossProjectiles.forEach(p => p.destroy()); bossProjectiles = [];
+    bossProjectiles.forEach(p => { if(p) p.destroy(); }); bossProjectiles = [];
     resetDefenders(scene);
     player.clearTint();
     scene.physics.resume();
