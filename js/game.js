@@ -234,7 +234,12 @@ function shootBossProjectile(scene, type) {
     sounds.bossShoot.play();
 }
 
+let lastShootTime = 0;
+const shootCooldown = 200;
 function shootBullet(scene) {
+    if (scene.time.now - lastShootTime < shootCooldown) return;
+    lastShootTime = scene.time.now;
+
     let bullet = scene.add.rectangle(player.x, player.y - 25, 5, 15, 0xffff00);
     scene.physics.add.existing(bullet);
     bullet.setDepth(6);
