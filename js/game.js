@@ -184,9 +184,12 @@ function handleObstacles(scene) {
         for (let j = defenders.length - 1; j >= 0; j--) {
             let d = defenders[j];
             if (scene.physics.overlap(o, d)) {
-                d.destroy(); defenders.splice(j, 1);
-                o.destroy(); obstacles.splice(i, 1);
+                d.destroy();
+                defenders.splice(j, 1);
+                o.destroy();
+                obstacles.splice(i, 1);
                 sounds.hit.play();
+                scene.cameras.main.shake(200, 0.01);
                 break;
             }
         }
@@ -207,6 +210,7 @@ function handleObstacles(scene) {
         }
     }
 }
+
 
 
 function handleBullets(scene) {
