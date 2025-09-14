@@ -31,6 +31,12 @@ let bossDirection = 1;
 let bossSpeed = 100;
 let bossType = "classic";
 let sounds = {};
+let music;
+let lastShootTime = 0;
+const shootCooldown = 200;
+let gameOverMenu;
+let musicOn = true;
+let menuActive = false;
 
 function preload() {
     this.load.audio('shoot', 'assets/shoot.wav');
@@ -83,12 +89,7 @@ function create() {
     player.body.setCollideWorldBounds(true);
     player.setDepth(5);
 
-    let defenderCount = Math.floor(400 / 25);
-    for (let i = 0; i < defenderCount; i++) {
-        let defender = this.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
-        defender.setDepth(4);
-        defenders.push(defender);
-    }
+    resetDefenders(this);
 
     cursors = this.input.keyboard.createCursorKeys();
     keys = this.input.keyboard.addKeys({ left: 'Q', right: 'D' });
@@ -111,46 +112,59 @@ function create() {
 }
 
 function update() {
-    let vx = 0;
-    if (cursors.left.isDown || keys.left.isDown) vx = -300;
-    else if (cursors.right.isDown || keys.right.isDown) vx = 300;
-    player.body.setVelocityX(vx);
+    if (!menuActive) {
+        let vx = 0;
+        if (cursors.left.isDown || keys.left.isDown) vx = -300;
+        else if (cursors.right.isDown || keys.right.isDown) vx = 300;
+        player.body.setVelocityX(vx);
 
-    score += 0.01;
-    scoreText.setText(`Score: ${Math.floor(score)}\nBest: ${bestScore}`);
+        score += 0.01;
+        scoreText.setText(`Score: ${Math.floor(score)}\nBest: ${bestScore}`);
 
-    if (!bossActive && mode === 'normal') {
-        if ((bossTimer === 0 && this.time.now >= 10000) || (bossTimer > 0 && this.time.now - bossTimer >= 20000)) {
-            startBossFight(this);
-        }
-    }
-
-    handleObstacles(this);
-    handleBullets(this);
-    handleBossProjectiles(this);
-    handleStars();
-
-    if (mode === 'boss' && boss) {
-        drawBossBar();
-
-        if (bossType !== "sniper") {
-            boss.x += bossDirection * bossSpeed * (this.game.loop.delta / 1000);
-            if (boss.x < 50) bossDirection = 1;
-            else if (boss.x > 350) bossDirection = -1;
+        if (!bossActive && mode === 'normal') {
+            if ((bossTimer === 0 && this.time.now >= 10000) || (bossTimer > 0 && this.time.now - bossTimer >= 20000)) {
+                startBossFight(this);
+            }
         }
 
-        let shootChance = 0;
-        if (bossType === "classic") shootChance = 2;
-        else if (bossType === "tank") shootChance = 1;
-        else if (bossType === "fast") shootChance = 4;
-        else if (bossType === "sniper") shootChance = 3;
+        handleObstacles(this);
+        handleBullets(this);
+        handleBossProjectiles(this);
+        handleStars();
 
-        if (Phaser.Math.Between(0, 100) < shootChance) shootBossProjectile(this, bossType);
+        if (mode === 'boss' && boss) {
+            drawBossBar();
+
+            if (bossType !== "sniper") {
+                boss.x += bossDirection * bossSpeed * (this.game.loop.delta / 1000);
+                if (boss.x < 50) bossDirection = 1;
+                else if (boss.x > 350) bossDirection = -1;
+            }
+
+            let shootChance = 0;
+            if (bossType === "classic") shootChance = 2;
+            else if (bossType === "tank") shootChance = 1;
+            else if (bossType === "fast") shootChance = 4;
+            else if (bossType === "sniper") shootChance = 3;
+
+            if (Phaser.Math.Between(0, 100) < shootChance) shootBossProjectile(this, bossType);
+        }
+
+        if (Math.floor(score) % 50 === 0) {
+            obstacleSpeed = 400 + score / 5;
+            spawnDelay = Math.max(300, 1000 - score / 2);
+        }
     }
+}
 
-    if (Math.floor(score) % 50 === 0) {
-        obstacleSpeed = 400 + score / 5;
-        spawnDelay = Math.max(300, 1000 - score / 2);
+function resetDefenders(scene) {
+    defenders.forEach(d => d.destroy());
+    defenders = [];
+    let defenderCount = Math.floor(400 / 25);
+    for (let i = 0; i < defenderCount; i++) {
+        let defender = scene.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
+        defender.setDepth(4);
+        defenders.push(defender);
     }
 }
 
@@ -166,7 +180,6 @@ function spawnObstacle(scene) {
 function handleObstacles(scene) {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         let o = obstacles[i];
-        if (o.y > 600) { o.destroy(); obstacles.splice(i, 1); continue; }
 
         for (let j = defenders.length - 1; j >= 0; j--) {
             let d = defenders[j];
@@ -178,9 +191,23 @@ function handleObstacles(scene) {
             }
         }
 
-        if (scene.physics.overlap(player, o)) gameOver(scene);
+        if (scene.physics.overlap(player, o)) {
+            gameOver(scene);
+            return;
+        }
+
+        if (o.y >= 580) {
+            gameOver(scene);
+            return;
+        }
+
+        if (o.y > 600) {
+            o.destroy();
+            obstacles.splice(i, 1);
+        }
     }
 }
+
 
 function handleBullets(scene) {
     for (let i = bullets.length - 1; i >= 0; i--) {
@@ -238,9 +265,8 @@ function shootBossProjectile(scene, type) {
     sounds.bossShoot.play();
 }
 
-let lastShootTime = 0;
-const shootCooldown = 200;
 function shootBullet(scene) {
+    if (menuActive) return;
     if (scene.time.now - lastShootTime < shootCooldown) return;
     lastShootTime = scene.time.now;
 
@@ -249,6 +275,23 @@ function shootBullet(scene) {
     bullet.setDepth(6);
     bullets.push(bullet);
     sounds.shoot.play();
+}
+
+function drawBossBar() {
+    bossBar.clear();
+    const maxBarWidth = 200;
+    const barHeight = 15;
+    const x = (config.width - maxBarWidth) / 2;
+    const y = 20;
+    let maxHealth = 20;
+    if (bossType === "tank") maxHealth = 40;
+    else if (bossType === "fast") maxHealth = 15;
+    else if (bossType === "sniper") maxHealth = 10;
+    let width = maxBarWidth * Math.max(0, bossHealth) / maxHealth;
+    bossBar.fillStyle(0x555555, 1);
+    bossBar.fillRect(x, y, maxBarWidth, barHeight);
+    bossBar.fillStyle(0xff0000, 1);
+    bossBar.fillRect(x, y, width, barHeight);
 }
 
 function startBossFight(scene) {
@@ -274,7 +317,6 @@ function startBossFight(scene) {
                         alertRect.destroy();
                         alertText.destroy();
                         mode = 'boss';
-
                         if (bossType === "classic") { bossHealth = 20; bossSpeed = 100; }
                         else if (bossType === "tank") { bossHealth = 40; bossSpeed = 50; }
                         else if (bossType === "fast") { bossHealth = 15; bossSpeed = 200; }
@@ -306,47 +348,62 @@ function handleStars() {
     });
 }
 
-function drawBossBar() {
-    bossBar.clear();
-    const maxBarWidth = 200;
-    const barHeight = 15;
-    const x = (config.width - maxBarWidth) / 2;
-    const y = 20;
-    let maxHealth = 20;
-    if (bossType === "tank") maxHealth = 40;
-    else if (bossType === "fast") maxHealth = 15;
-    else if (bossType === "sniper") maxHealth = 10;
-    let width = maxBarWidth * Math.max(0, bossHealth) / maxHealth;
-    bossBar.fillStyle(0x555555, 1);
-    bossBar.fillRect(x, y, maxBarWidth, barHeight);
-    bossBar.fillStyle(0xff0000, 1);
-    bossBar.fillRect(x, y, width, barHeight);
-}
-
-
 function gameOver(scene) {
-    if (bossActive) endBossFight(scene);
+    mode = 'paused';
+    menuActive = true;
     scene.physics.pause();
     player.setTint(0xff0000);
     sounds.gameOver.play();
-    if (score > bestScore) { bestScore = Math.floor(score); localStorage.setItem('bestScore', bestScore); }
-    setTimeout(() => {
-        score = 0;
-        obstacles.forEach(o => o.destroy()); obstacles = [];
-        bullets.forEach(b => b.destroy()); bullets = [];
-        bossProjectiles.forEach(p => p.destroy()); bossProjectiles = [];
-        defenders.forEach(d => d.destroy()); defenders = [];
-        let defenderCount = Math.floor(400 / 25);
-        for (let i = 0; i < defenderCount; i++) {
-            let defender = scene.physics.add.sprite(12 + i * 25, 580, 'defenderTex');
-            defender.setDepth(4);
-            defenders.push(defender);
-        }
-        player.clearTint();
-        scene.physics.resume();
-        mode = 'normal';
-        bossBar.clear();
-        bossActive = false;
-        bossTimer = scene.time.now;
-    }, 2000);
+    if (score > bestScore) {
+        bestScore = Math.floor(score);
+        localStorage.setItem('bestScore', bestScore);
+    }
+
+    endBossFight(scene);
+
+    gameOverMenu = scene.add.container(config.width / 2, config.height / 2);
+
+    let bg = scene.add.rectangle(0, 0, 300, 200, 0x000000, 0.8).setStrokeStyle(2, 0xffffff);
+    let retryText = scene.add.text(0, -40, 'RETRY', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+    let musicText = scene.add.text(0, 40, `MUSIC: ${musicOn ? 'ON' : 'OFF'}`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+
+    retryText.on('pointerover', () => retryText.setStyle({ fill: '#ff0' }));
+    retryText.on('pointerout', () => retryText.setStyle({ fill: '#fff' }));
+    musicText.on('pointerover', () => musicText.setStyle({ fill: '#ff0' }));
+    musicText.on('pointerout', () => musicText.setStyle({ fill: '#fff' }));
+
+    retryText.on('pointerdown', () => {
+        gameOverMenu.destroy();
+        resetGame(scene);
+    });
+
+    musicText.on('pointerdown', () => {
+        musicOn = !musicOn;
+        music.setMute(!musicOn);
+        musicText.setText(`MUSIC: ${musicOn ? 'ON' : 'OFF'}`);
+    });
+
+    gameOverMenu.add([bg, retryText, musicText]);
+    scene.tweens.add({
+        targets: gameOverMenu,
+        scaleX: { from: 0, to: 1 },
+        scaleY: { from: 0, to: 1 },
+        ease: 'Back',
+        duration: 500
+    });
+}
+
+function resetGame(scene) {
+    score = 0;
+    obstacles.forEach(o => o.destroy()); obstacles = [];
+    bullets.forEach(b => b.destroy()); bullets = [];
+    bossProjectiles.forEach(p => p.destroy()); bossProjectiles = [];
+    resetDefenders(scene);
+    player.clearTint();
+    scene.physics.resume();
+    mode = 'normal';
+    bossBar.clear();
+    bossActive = false;
+    bossTimer = scene.time.now;
+    menuActive = false;
 }
